@@ -33,6 +33,12 @@
     <ClCompile Include="..\Classes\common\CDraw.cpp">
       <Filter>src\common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Classes\common\CButton.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Classes\CCar.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -52,6 +58,12 @@
     </ClInclude>
     <ClInclude Include="..\Classes\common\CDraw.h">
       <Filter>src\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\common\CButton.h">
+      <Filter>src\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Classes\CCar.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -3,7 +3,6 @@
 #include "cocos2d.h"
 #include "Box2D/Box2D.h"
 #include "cocostudio/CocoStudio.h"
-#include <list>
 
 using namespace std;
 
