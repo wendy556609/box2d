@@ -31,6 +31,8 @@ void CDraw::init(b2World& world, cocos2d::Node& scene) {
 
 	_ilineFree = LINE_LENGTH;
 	_ilineUse = 0;
+
+	setPenColor(Color4F::BLACK);
 }
 
 bool CDraw::onTouchBegan(cocos2d::Point touchLoc) {
@@ -56,7 +58,7 @@ void CDraw::onTouchMoved(cocos2d::Point touchLoc) {
 		if (_ilineFree > 0) {
 			_linepos[_ilineUse] = _currentLoc;
 
-			_drawNode->drawLine(_preLoc, _currentLoc, Color4F::WHITE);
+			_drawNode->drawLine(_preLoc, _currentLoc, _color);
 			_angle[_ilineUse] = -ccpAngleSigned(ccpSub(_currentLoc, _preLoc), ccp(1.0f, 0.0f));
 			_ilineUse++; _ilineFree--;
 		}
@@ -94,6 +96,7 @@ void CDraw::onTouchEnded(cocos2d::Point touchLoc) {
 
 				lineShape->SetAsBox(segLength / PTM_RATIO, 0.5f / PTM_RATIO, center, _angle[i]);
 				lineFixtureDef.shape = lineShape;
+				lineFixtureDef.filter.categoryBits = 1 << colorNum;
 				_lineBody->CreateFixture(&lineFixtureDef);
 			}
 		}
@@ -101,4 +104,9 @@ void CDraw::onTouchEnded(cocos2d::Point touchLoc) {
 		_ilineFree = LINE_LENGTH;
 		_bTouch = false;
 	}
+}
+
+void CDraw::setPenColor(cocos2d::Color4F color, int num) {
+	_color = color;
+	colorNum = num;
 }

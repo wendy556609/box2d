@@ -38,6 +38,7 @@ void CCar::setCar() {
 	fixtureDef.density = 1.0f; fixtureDef.friction = 0.1f; fixtureDef.restitution = 0.25f;
 	b2PolygonShape boxShape;
 	boxShape.SetAsBox((size.width - 6) * 0.5f / PTM_RATIO, (size.height - 8) * 0.5f / PTM_RATIO);
+	fixtureDef.filter.categoryBits = 1 << 1;
 	fixtureDef.shape = &boxShape;
 
 	carbody->CreateFixture(&fixtureDef);
@@ -58,6 +59,7 @@ void CCar::setCar() {
 	circle.m_radius = size.width * 0.5f / PTM_RATIO;
 	fixtureDef.shape = &circle;
 	fixtureDef.density = 0.5f; fixtureDef.friction = 0.25f; fixtureDef.restitution = 0.25f;
+	fixtureDef.filter.categoryBits = 1 << 1;
 	wheelbodyA->CreateFixture(&fixtureDef);
 
 	b2RevoluteJoint* RjointA;
@@ -81,6 +83,7 @@ void CCar::setCar() {
 	circle.m_radius = size.width * 0.5f / PTM_RATIO;
 	fixtureDef.shape = &circle;
 	fixtureDef.density = 0.5f; fixtureDef.friction = 0.25f; fixtureDef.restitution = 0.25f;
+	fixtureDef.filter.categoryBits = 1 << 1;
 	wheelbodyB->CreateFixture(&fixtureDef);
 
 	b2RevoluteJoint* RjointB;
@@ -99,7 +102,7 @@ void CCar::setCar() {
 
 	//moveTarget
 	pos.x = (wheelposA.x + wheelposB.x) / 2;
-	pos.y = -200.0f;
+	pos.y = -400.0f;
 	bodyDef.type = b2_dynamicBody;
 	bodyDef.position.Set(pos.x / PTM_RATIO, pos.y / PTM_RATIO);
 	bodyDef.userData = nullptr;

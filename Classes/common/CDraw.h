@@ -31,11 +31,15 @@ private:
 
 	cocos2d::Point _preLoc;
 	bool _bTouch;
+
+	cocos2d::Color4F _color;
+	int colorNum;
 public:
 	CDraw();
 	~CDraw();
 
 	void init(b2World& world,cocos2d::Node &scene);
+	void setPenColor(cocos2d::Color4F color, int num = 1);
 
 	bool onTouchBegan(cocos2d::Point touchLoc); //觸碰開始事件
 	void onTouchMoved(cocos2d::Point touchLoc); //觸碰移動事件

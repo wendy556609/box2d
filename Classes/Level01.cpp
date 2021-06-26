@@ -1,27 +1,7 @@
 #include "Level01.h"
-#include "cocostudio/CocoStudio.h"
-#include "ui/CocosGUI.h"
-
-USING_NS_CC;
-
-#define MAX_2(X,Y) (X)>(Y) ? (X) : (Y)
-
-using namespace cocostudio::timeline;
 
 Level01::~Level01()
 {
-#ifdef BOX2D_DEBUG
-	if (_DebugDraw != NULL) delete _DebugDraw;
-#endif
-
-	if (_b2World != nullptr) delete _b2World;
-	//  for releasing Plist&Texture
-	//	SpriteFrameCache::getInstance()->removeSpriteFramesFromFile("box2d.plist");
-	Director::getInstance()->getTextureCache()->removeUnusedTextures();
-
-	CC_SAFE_DELETE(_car);
-	CC_SAFE_DELETE(_draw);
-	CC_SAFE_DELETE(_leftBtn);
 }
 
 Scene* Level01::createScene()
@@ -55,63 +35,7 @@ bool Level01::init()
 
 	addChild(_csbRoot, 1);
 
-#ifdef BOX2D_DEBUG
-	auto background = dynamic_cast<Node*>(_csbRoot->getChildByName("background"));
-	background->setVisible(false);
-	#endif
-
-	// 建立 Box2D world
-	_b2World = nullptr;
-	b2Vec2 Gravity = b2Vec2(0.0f, -9.8f);		//重力方向
-	bool AllowSleep = true;			//允許睡著
-	_b2World = new (std::nothrow) b2World(Gravity);	//創建世界
-	_b2World->SetAllowSleeping(AllowSleep);	//設定物件允許睡著
-
-	//繪圖
-	_draw = new (nothrow) CDraw();
-	_draw->init(*_b2World, *this);
-
-	auto btn = dynamic_cast<Sprite*>(_csbRoot->getChildByName("btn_left"));
-	btn->setVisible(false);
-	_leftBtn= new (nothrow) CButton();
-	_leftBtn->init("runnormal.png", "runon.png", btn->getPosition(), *this);
-	_leftBtn->setIcon("arrow.png", false);
-
-	btn = dynamic_cast<Sprite*>(_csbRoot->getChildByName("btn_right"));
-	btn->setVisible(false);
-	_rightBtn = new (nothrow) CButton();
-	_rightBtn->init("runnormal.png", "runon.png", btn->getPosition(), *this);
-	_rightBtn->setIcon("arrow.png", true);
-
-	_car = new (nothrow) CCar();
-	_car->init(*_csbRoot, *_b2World);
-
-	_contactListener.setCollisionTarget(*_car->getCarSprite());
-
-	setGoalSensor();
-	setPullJoint();
-	setSeesaw();
-	setMouseJoint();
-	setButton();
-
-	createStaticBoundary();
-
-#ifdef BOX2D_DEBUG
-	//DebugDrawInit
-	_DebugDraw = nullptr;
-	_DebugDraw = new GLESDebugDraw(PTM_RATIO);
-	//設定DebugDraw
-	_b2World->SetDebugDraw(_DebugDraw);
-	//選擇繪製型別
-	uint32 flags = 0;
-	flags += GLESDebugDraw::e_shapeBit;						//繪製形狀
-	flags += GLESDebugDraw::e_pairBit;
-	flags += GLESDebugDraw::e_jointBit;
-	flags += GLESDebugDraw::e_centerOfMassBit;
-	flags += GLESDebugDraw::e_aabbBit;
-	//設定繪製類型
-	_DebugDraw->SetFlags(flags);
-#endif
+	setObject();
 
 	_b2World->SetContactListener(&_contactListener);
 
@@ -124,37 +48,6 @@ bool Level01::init()
 	this->schedule(CC_SCHEDULE_SELECTOR(Level01::update));
 
 	return true;
-}
-
-
-void Level01::readBlocksCSBFile(const char* csbfilename)
-{
-	auto csbRoot = CSLoader::createNode(csbfilename);
-	csbRoot->setPosition(_visibleSize.width / 2.0f, _visibleSize.height / 2.0f);
-	addChild(csbRoot, 1);
-	for (size_t i = 1; i <= 3; i++)
-	{
-		// 產生所需要的 Sprite file name int plist 
-		std::ostringstream ostr;
-		std::string objname;
-		ostr << "block1_0" << i; objname = ostr.str();
-	}
-}
-
-void Level01::readSceneFile(const char* csbfilename)
-{
-	auto csbRoot = CSLoader::createNode(csbfilename);
-	csbRoot->setPosition(_visibleSize.width / 2.0f, _visibleSize.height / 2.0f);
-	addChild(csbRoot, 1);
-	char tmp[20] = "";
-	for (size_t i = 1; i <= 12; i++)
-	{
-		// 產生所需要的 Sprite file name int plist 
-		std::ostringstream ostr;
-		std::string objname;
-		ostr << "XXX_"; ostr.width(2); ostr.fill('0'); ostr << i; objname = ostr.str();
-		//		sprintf(tmp, "XXX_%02d", i);
-	}
 }
 
 void Level01::update(float dt)
@@ -170,6 +63,10 @@ void Level01::update(float dt)
 	if (_contactListener._isFinish) {
 		_car->setFinish(_goalPos);
 		_stopLight->setSpriteFrame("orange05.png");
+		_endCount += dt;
+		if (_endCount >= ENDTIME) {
+			NextLevel();
+		}
 	}
 
 	if (_contactListener._isClickBtn) {
@@ -195,9 +92,6 @@ void Level01::update(float dt)
 		// 以下是以 Body 有包含 Sprite 顯示為例
 		if (body->GetUserData() != NULL)
 		{
-			Point move;
-			//move = Point((body->GetPosition().x + 0.05f), body->GetPosition().y);
-			//body->SetTransform(b2Vec2(move.x, move.y), body->GetAngle());
 			Sprite* bodyData = static_cast<Sprite*>(body->GetUserData());
 			bodyData->setPosition(body->GetPosition().x * PTM_RATIO, body->GetPosition().y * PTM_RATIO);
 			bodyData->setRotation(-1 * CC_RADIANS_TO_DEGREES(body->GetAngle()));
@@ -205,32 +99,39 @@ void Level01::update(float dt)
 	}
 }
 
-void Level01::setGoalSensor() {
-	auto sensorSprite = dynamic_cast<Sprite*>(_csbRoot->getChildByName("car_sensor"));
-	_goalPos = sensorSprite->getPosition();
-	Size  size = sensorSprite->getContentSize();
+void Level01::setObject()
+{
+	wallCount = WallCount;
+	rectCount = rectWallCount;
 
-	b2BodyDef sensorBodyDef;
-	sensorBodyDef.position.Set(_goalPos.x / PTM_RATIO, _goalPos.y / PTM_RATIO);
-	sensorBodyDef.type = b2_staticBody;
-	sensorBodyDef.userData = sensorSprite;
+	setInitObject();
+	setGoalSensor();
+	createStaticBoundary(wallCount, rectCount);
 
-	b2Body* sensorBody = _b2World->CreateBody(&sensorBodyDef);
-	b2PolygonShape sensorShape;
-	sensorShape.SetAsBox((size.width - 4) * 0.5f / PTM_RATIO, (size.height - 4) * 0.5f / PTM_RATIO);
+	_contactListener.setCollisionTarget(*_car->getCarSprite());
 
-	b2FixtureDef sensorFixDef;
-	sensorFixDef.shape = &sensorShape;
-	sensorFixDef.isSensor = true;
-	sensorFixDef.density = 1000.0f;
-	sensorBody->CreateFixture(&sensorFixDef);
+	setPullJoint();
+	setSeesaw();
+	setButton();
+	setMouseJoint();
+}
 
-	auto lightSprite = dynamic_cast<Sprite*>(_csbRoot->getChildByName("stopLight"));
-	lightSprite->setVisible(false);
-	_stopLight = Sprite::createWithSpriteFrameName("orange02.png");
-	_stopLight->setPosition(lightSprite->getPosition());
-	_stopLight->setScale(lightSprite->getScale());
-	addChild(_stopLight, 3);
+void Level01::Replay() {
+	// 先將這個 SCENE 的 update  從 schedule update 中移出
+	this->unschedule(schedule_selector(Level01::update));
+	SpriteFrameCache::getInstance()->removeSpriteFramesFromFile("box2d.plist");
+	//  設定場景切換的特效
+	TransitionFade* pageTurn = TransitionFade::create(1.0F, Level01::createScene());
+	Director::getInstance()->replaceScene(pageTurn);
+}
+
+void Level01::NextLevel() {
+	// 先將這個 SCENE 的 update  從 schedule update 中移出
+	this->unschedule(schedule_selector(Level01::update));
+	SpriteFrameCache::getInstance()->removeSpriteFramesFromFile("box2d.plist");
+	//  設定場景切換的特效
+	TransitionFade* pageTurn = TransitionFade::create(1.0F, Level02::createScene());
+	Director::getInstance()->replaceScene(pageTurn);
 }
 
 void Level01::setPullJoint() {
@@ -245,7 +146,7 @@ void Level01::setPullJoint() {
 	staticFixtureDef.shape = &staticShape;
 
 	//pulleyA
-	auto boxSprite= dynamic_cast<Sprite*>(_csbRoot->getChildByName("rect_pul01"));
+	auto boxSprite = dynamic_cast<Sprite*>(_csbRoot->getChildByName("rect_pul01"));
 	Point posA = boxSprite->getPosition();
 	Size size = boxSprite->getContentSize();
 	float scaleX = boxSprite->getScaleX();
@@ -301,7 +202,7 @@ void Level01::setPullJoint() {
 	priJoint.Initialize(staticBodyB, bodyB, bodyB->GetWorldCenter(), b2Vec2(0, 1.0f));
 	_b2World->CreateJoint(&priJoint);
 
-	b2Vec2 vec1= b2Vec2(posA.x / PTM_RATIO, posA.y / PTM_RATIO);
+	b2Vec2 vec1 = b2Vec2(posA.x / PTM_RATIO, posA.y / PTM_RATIO);
 	b2Vec2 vec2 = b2Vec2(posB.x / PTM_RATIO, posA.y / PTM_RATIO);
 	b2PulleyJointDef jointDef;
 	jointDef.Initialize(bodyA, bodyB, vec1, vec2, bodyA->GetWorldCenter(), bodyB->GetWorldCenter(), 1.0f);
@@ -324,7 +225,7 @@ void Level01::setSeesaw() {
 	lep[0].x = 0; lep[0].y = (size.height - 2) / 2.0f;
 	lep[1].x = -(size.width - 2) / 2.0f; lep[1].y = -(size.height - 2) / 2.0f;
 	lep[2].x = (size.width - 2) / 2.0f; lep[2].y = -(size.height - 2) / 2.0f;
-	
+
 	cocos2d::Mat4 modelMatrix, rotMatrix;
 	modelMatrix.m[0] = scaleX;  // 先設定 X 軸的縮放
 	modelMatrix.m[5] = scaleY;  // 先設定 Y 軸的縮放
@@ -342,14 +243,14 @@ void Level01::setSeesaw() {
 	triShape.Set(vecs, 3);
 	bodyDef.type = b2_staticBody;
 	bodyDef.position.Set(pos.x / PTM_RATIO, pos.y / PTM_RATIO);
-	
+
 	b2Body* seesawBaseBody = _b2World->CreateBody(&bodyDef);
 	fixtureDef.shape = &triShape;
 	fixtureDef.density = 1.0f;
 	fixtureDef.friction = 0.1f;
 	fixtureDef.restitution = 0.8f;
 	seesawBaseBody->CreateFixture(&fixtureDef);
-	
+
 	//seesawBoard
 	auto boardSprite = dynamic_cast<Sprite*>(_csbRoot->getChildByName("seesawBoard"));
 	pos = boardSprite->getPosition();
@@ -372,7 +273,7 @@ void Level01::setSeesaw() {
 
 	seesawBoardShape.SetAsBox((size.width - 4) * scaleX * 0.5f / PTM_RATIO, (size.height - 4) * scaleY * 0.5f / PTM_RATIO);
 	seesawBoardBody->CreateFixture(&fixtureDef);
-	
+
 	//seesaw Joint
 	b2RevoluteJointDef seesawJoint;
 	seesawJoint.bodyA = seesawBaseBody;
@@ -399,7 +300,7 @@ void Level01::setButton() {
 	_BtnBody = _b2World->CreateBody(&bodyDef);
 
 	b2PolygonShape boxShape;
-	boxShape.SetAsBox((size.width - 4)* scaleX * 0.5f / PTM_RATIO, (size.height - 4 ) * scaleY * 0.5f / PTM_RATIO);
+	boxShape.SetAsBox((size.width - 4) * scaleX * 0.5f / PTM_RATIO, (size.height - 4) * scaleY * 0.5f / PTM_RATIO);
 
 	b2FixtureDef fixtureDef;
 	fixtureDef.shape = &boxShape;
@@ -501,12 +402,12 @@ bool Level01::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//觸碰
 	for (b2Body* body = _b2World->GetBodyList(); body; body = body->GetNext())
 	{
 		if (body->GetUserData() == NULL) continue; // 靜態物體不處理
-		
+
 		if (body->GetUserData() == _frameSprite) {
 			Size size = _frameSprite->getContentSize();
 			float fdistX = size.width / 2.0f;
 			float fdistY = size.height / 2.0f;
-			
+
 			float x = body->GetPosition().x * PTM_RATIO - touchLoc.x;
 			float y = body->GetPosition().y * PTM_RATIO - touchLoc.y;
 			float tpdist = x * x + y * y;
@@ -530,6 +431,9 @@ bool Level01::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//觸碰
 			_car->setState(LEFT);
 		else if (_rightBtn->onTouchBegan(touchLoc))
 			_car->setState(RIGHT);
+		else if (_retryBtn->onTouchBegan(touchLoc)) {
+
+		}
 		else
 			_draw->onTouchBegan(touchLoc);
 	}
@@ -548,6 +452,9 @@ void  Level01::onTouchMoved(cocos2d::Touch* pTouch, cocos2d::Event* pEvent) //觸
 			_car->setState(LEFT);
 		else if (_rightBtn->onTouchMoved(touchLoc))
 			_car->setState(RIGHT);
+		else if (_retryBtn->onTouchMoved(touchLoc)) {
+
+		}
 		else
 			_draw->onTouchMoved(touchLoc);
 	}
@@ -569,102 +476,15 @@ void  Level01::onTouchEnded(cocos2d::Touch* pTouch, cocos2d::Event* pEvent) //觸
 			_car->setState(STOP);
 		else if (_rightBtn->onTouchEnded(touchLoc))
 			_car->setState(STOP);
+		else if (_retryBtn->onTouchEnded(touchLoc)) {
+			Replay();
+		}
 		else
 			_draw->onTouchEnded(touchLoc);
 	}
 }
 
-void Level01::createStaticBoundary()
-{
-	// 先產生 Body, 設定相關的參數
-	b2BodyDef bodyDef;
-	bodyDef.type = b2_staticBody;
-	bodyDef.userData = NULL;
-
-	b2Body* body = _b2World->CreateBody(&bodyDef);
-
-	b2EdgeShape edgeShape;
-	b2FixtureDef edgeFixtureDef;
-	edgeFixtureDef.shape = &edgeShape;
-	edgeFixtureDef.density = 1.0f; edgeFixtureDef.friction = 0.25f; edgeFixtureDef.restitution = 0.25f;
-
-	//bottom edge
-	edgeShape.Set(b2Vec2(0.0f / PTM_RATIO, 0.0f / PTM_RATIO), b2Vec2(_visibleSize.width / PTM_RATIO, 0.0f / PTM_RATIO));
-	body->CreateFixture(&edgeFixtureDef);
-	_bottomBody = body;
-
-	//left edge
-	edgeShape.Set(b2Vec2(0.0f / PTM_RATIO, 0.0f / PTM_RATIO), b2Vec2(0.0f / PTM_RATIO, _visibleSize.height / PTM_RATIO));
-	body->CreateFixture(&edgeFixtureDef);
-
-	//top edge
-	edgeShape.Set(b2Vec2(0.0f / PTM_RATIO, _visibleSize.height / PTM_RATIO), b2Vec2(_visibleSize.width / PTM_RATIO, _visibleSize.height / PTM_RATIO));
-	body->CreateFixture(&edgeFixtureDef);
-
-	//right edge
-	edgeShape.Set(b2Vec2(_visibleSize.width / PTM_RATIO, 0.0f / PTM_RATIO), b2Vec2(_visibleSize.width / PTM_RATIO, _visibleSize.height / PTM_RATIO));
-	body->CreateFixture(&edgeFixtureDef);
-
-	for (size_t i = 1; i <= WallCount; i++)
-	{
-		std::ostringstream ostr;
-		std::string objname;
-		ostr << "wall1_"; ostr.width(2); ostr.fill('0'); ostr << i;
-		objname = ostr.str();
-
-		auto wall = dynamic_cast<Sprite*>(_csbRoot->getChildByName(objname));
-		Point pos = wall->getPosition();
-		Size size = wall->getContentSize();
-		float angle = wall->getRotation();
-		float scale = wall->getScaleX();
-
-		Point lep1, lep2, wep1, wep2;
-		lep1.y = 0; lep1.x = -(size.width - 4) / 2.0f;
-		lep2.y = 0; lep2.x = (size.width - 4) / 2.0f;
-
-		cocos2d::Mat4 modelMatrix, rotMatrix;
-		modelMatrix.m[0] = scale;
-		cocos2d::Mat4::createRotationZ(angle * M_PI / 180.0f, &rotMatrix);
-		modelMatrix.multiply(rotMatrix);
-		modelMatrix.m[3] = pos.x;
-		modelMatrix.m[7] = pos.y;
-
-		wep1.x = lep1.x * modelMatrix.m[0] + lep1.y * modelMatrix.m[1] + modelMatrix.m[3];
-		wep1.y = lep1.x * modelMatrix.m[4] + lep1.y * modelMatrix.m[5] + modelMatrix.m[7];
-		wep2.x = lep2.x * modelMatrix.m[0] + lep2.y * modelMatrix.m[1] + modelMatrix.m[3];
-		wep2.y = lep2.x * modelMatrix.m[4] + lep2.y * modelMatrix.m[5] + modelMatrix.m[7];
-
-		edgeShape.Set(b2Vec2(wep1.x / PTM_RATIO, wep1.y / PTM_RATIO), b2Vec2(wep2.x / PTM_RATIO, wep2.y / PTM_RATIO));
-		body->CreateFixture(&edgeFixtureDef);
-	}
-
-	for (size_t i = 1; i <= rectWallCount; i++)
-	{
-		std::ostringstream ostr;
-		std::string objname;
-		ostr << "rect1_"; ostr.width(2); ostr.fill('0'); ostr << i;
-		objname = ostr.str();
-
-		auto box = dynamic_cast<Sprite*>(_csbRoot->getChildByName(objname));
-		Point pos = box->getPosition();
-		Size size = box->getContentSize();
-		float scaleX = box->getScaleX();
-		float scaleY = box->getScaleY();
-
-		bodyDef.position.Set(pos.x / PTM_RATIO, pos.y / PTM_RATIO);
-
-		body = _b2World->CreateBody(&bodyDef);
-
-		b2FixtureDef fixtureDef;
-		fixtureDef.density = 1.0f; fixtureDef.friction = 0.25f; fixtureDef.restitution = 0.25f;
-		b2PolygonShape boxShape;
-		boxShape.SetAsBox((size.width - 4) * scaleX * 0.5f / PTM_RATIO, (size.height - 4) * scaleY * 0.5f / PTM_RATIO);
-		fixtureDef.shape = &boxShape;
-		body->CreateFixture(&fixtureDef);
-	}
-}
-
-CContactListener::CContactListener()
+CLevel01ContactListener::CLevel01ContactListener()
 {
 	_carSprite = nullptr;
 	_BtnSprite = nullptr;
@@ -676,7 +496,7 @@ CContactListener::CContactListener()
 //
 // 只要是兩個 body 的 fixtures 碰撞，就會呼叫這個函式
 //
-void CContactListener::BeginContact(b2Contact* contact)
+void CLevel01ContactListener::BeginContact(b2Contact* contact)
 {
 	b2Body* BodyA = contact->GetFixtureA()->GetBody();
 	b2Body* BodyB = contact->GetFixtureB()->GetBody();
@@ -699,26 +519,13 @@ void CContactListener::BeginContact(b2Contact* contact)
 }
 
 //碰撞結束
-void CContactListener::EndContact(b2Contact* contact)
+void CLevel01ContactListener::EndContact(b2Contact* contact)
 {
 	b2Body* BodyA = contact->GetFixtureA()->GetBody();
 	b2Body* BodyB = contact->GetFixtureB()->GetBody();
 
 }
 
-void CContactListener::setCollisionTarget(cocos2d::Sprite& targetSprite) {
+void CLevel01ContactListener::setCollisionTarget(cocos2d::Sprite& targetSprite) {
 	_carSprite = &targetSprite;
 }
-
-#ifdef BOX2D_DEBUG
-//改寫繪製方法
-void Level01::draw(Renderer* renderer, const Mat4& transform, uint32_t flags)
-{
-	Director* director = Director::getInstance();
-
-	GL::enableVertexAttribs(cocos2d::GL::VERTEX_ATTRIB_FLAG_POSITION);
-	director->pushMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
-	_b2World->DrawDebugData();
-	director->popMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
-}
-#endif
