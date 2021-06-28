@@ -53,11 +53,15 @@ public:
 	CButton* _redBtn;
 	CButton* _greenBtn;
 	CButton* _blueBtn;
+	CButton* _dropBtn;
 
 	b2Body* _bottomBody;
 
 	cocos2d::Point _goalPos;
 	cocos2d::Sprite* _stopLight;
+
+	DrawNode* disNode;
+	DrawNode* platNode;
 
 	// for Box2D
 	b2World* _b2World;

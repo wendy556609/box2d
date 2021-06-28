@@ -487,9 +487,9 @@ void  Level01::onTouchEnded(cocos2d::Touch* pTouch, cocos2d::Event* pEvent) //Ĳ
 CLevel01ContactListener::CLevel01ContactListener()
 {
 	_carSprite = nullptr;
-	_BtnSprite = nullptr;
-
 	_isFinish = false;
+
+	_BtnSprite = nullptr;
 	_isClickBtn = false;
 }
 

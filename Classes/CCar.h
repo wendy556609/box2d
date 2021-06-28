@@ -24,6 +24,21 @@ enum State {
 
 class CCar
 {
+private:
+	cocos2d::Sprite* _carSprite;
+
+	b2Body* _carBody;
+	b2Body* _wheelBodyA;
+	b2Body* _wheelBodyB;
+	b2Body* _moveTarget;
+
+	cocos2d::Point _carPos;
+
+	float _fVelocity;
+
+	bool _isFinish;
+
+	int _iState;
 public:
 	CCar();
 	~CCar();
@@ -32,21 +47,6 @@ public:
 
 	// for Box2D
 	b2World* _b2World;
-
-	cocos2d::Sprite* _carSprite;
-
-	b2Body* carbody;
-	b2Body* wheelbodyA;
-	b2Body* wheelbodyB;
-	b2Body* moveTarget;
-
-	float _fVelocity;
-	float _fstopTime;
-
-	bool _isStatic;
-	bool _isFinish;
-
-	int _iState;
 
 	// Here's a difference. Method 'init' in cocos2d-x returns bool, instead of returning 'id' in cocos2d-iphone
 	void init(cocos2d::Node& csbroot, b2World& world);
@@ -57,6 +57,8 @@ public:
 	void setFinish(cocos2d::Point goalPos);
 
 	cocos2d::Sprite* getCarSprite();
+	cocos2d::Point getCarPos();
+	b2Body* getCarBody();
 
 #ifdef BOX2D_DEBUG
 //DebugDraw

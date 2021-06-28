@@ -64,6 +64,10 @@ void Level02::update(float dt)
 	if (_contactListener._isFinish) {
 		_car->setFinish(_goalPos);
 		_stopLight->setSpriteFrame("orange05.png");
+		_endCount += dt;
+		if (_endCount >= ENDTIME) {
+			NextLevel();
+		}
 	}
 	// 取得 _b2World 中所有的 body 進行處理
 	// 最主要是根據目前運算的結果，更新附屬在 body 中 sprite 的位置
@@ -141,7 +145,12 @@ void Level02::Replay() {
 }
 
 void Level02::NextLevel() {
-
+	// 先將這個 SCENE 的 update  從 schedule update 中移出
+	this->unschedule(schedule_selector(Level02::update));
+	SpriteFrameCache::getInstance()->removeSpriteFramesFromFile("box2d.plist");
+	//  設定場景切換的特效
+	TransitionFade* pageTurn = TransitionFade::create(1.0F, Level03::createScene());
+	Director::getInstance()->replaceScene(pageTurn);
 }
 
 void Level02::setPullJoint() {
@@ -762,13 +771,11 @@ void CLevel02ContactListener::BeginContact(b2Contact* contact)
 
 	//剪刀碰到繩子
 	if (BodyA->GetFixtureList()->GetDensity() == 1001.0f && BodyB->GetFixtureList()->GetDensity() == 0.01f) {
-		log("enter");
 		for (int i = 0; i < 5; i++)
 		{
 			if (BodyB == ropeBody[i]) {
 				_isCut = true;
 				ropeNum = i;
-				log("rope");
 				break;
 			}
 		}
@@ -778,19 +785,16 @@ void CLevel02ContactListener::BeginContact(b2Contact* contact)
 			if (BodyB == ropeBody2[i]) {
 				_isCut = true;
 				rope2Num = i;
-				log("rope2");
 				break;
 			}
 		}
 	}
 	else if (BodyB->GetFixtureList()->GetDensity() == 1001.0f && BodyA->GetFixtureList()->GetDensity() == 0.01f) {
-		log("enter");
 		for (int i = 0; i < 5; i++)
 		{
 			if (BodyA == ropeBody[i]) {
 				_isCut = true;
 				ropeNum = i;
-				log("rope");
 				break;
 			}
 		}
@@ -800,7 +804,6 @@ void CLevel02ContactListener::BeginContact(b2Contact* contact)
 			if (BodyA == ropeBody2[i]) {
 				_isCut = true;
 				rope2Num = i;
-				log("rope2");
 				break;
 			}
 		}

@@ -12,9 +12,10 @@ class CLevel01ContactListener : public b2ContactListener
 {
 public:
 	cocos2d::Sprite* _carSprite;
-	cocos2d::Sprite* _BtnSprite;
-
 	bool _isFinish;
+
+	//«ö¶s
+	cocos2d::Sprite* _BtnSprite;
 	bool _isClickBtn;
 
 	CLevel01ContactListener();
