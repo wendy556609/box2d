@@ -26,6 +26,10 @@ public:
 	int rope2Num;
 	b2Body* ropeBody2[8];
 
+	b2Body* gearBody[4];
+	b2Body* gearSensor[4];
+	bool _isOn[4];
+
 	CLevel03ContactListener();
 	//碰撞開始
 	virtual void BeginContact(b2Contact* contact);
@@ -52,6 +56,7 @@ public:
 	cocos2d::Sprite* _BtnSprite;
 	b2Body* _BtnBody;
 	b2Body* _FloorBody;
+	b2Body* platJoint;
 	bool _bBtnClick;
 	bool _isFloorUp;
 	float _stopPosY;
@@ -66,12 +71,16 @@ public:
 	b2RevoluteJoint* ropeReJoint2[8];
 	b2Body* ropeBody2[8];
 
-	b2Body* platJoint;
-	b2Body* distanceBody;
-	b2Body* disJointBody;
-
+	//齒輪
 	b2Body* gearBody[10];
+	b2Body* gearJoint[10];
+	b2Body* gearSensor[4];
 	b2GearJointDef GJoint[9];
+	b2PrismaticJoint* gearPriJoint[4];
+	b2RevoluteJoint* RevJoint[10];
+	float ratio[8];
+	bool _isOn[4];
+	bool _isTurn;
 	/*------*/
 	//gear[1]--GJoint[0] GJoint[1]
 	//gear[2]--GJoint[1] GJoint[2]
@@ -95,8 +104,9 @@ public:
 	void setMouseJoint();
 	void setRopeJoint();
 	void setWeldJoint();
-	void setDistanceJoint();
 	void setGear();
+	void setGearSensor();
+	void setGearOn();
 
 	bool onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent); //觸碰開始事件
 	void onTouchMoved(cocos2d::Touch* pTouch, cocos2d::Event* pEvent); //觸碰移動事件

@@ -23,6 +23,8 @@
  ****************************************************************************/
 
 #include "AppDelegate.h"
+#include "Level01.h"
+#include "Level02.h"
 #include "Level03.h"
 
 // #define USE_AUDIO_ENGINE 1

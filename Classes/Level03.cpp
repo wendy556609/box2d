@@ -1,5 +1,7 @@
 #include "Level03.h"
 
+int GearNum[4] = { 1,2,4,7 };
+
 Level03::~Level03()
 {
 	CC_SAFE_DELETE(_dropBtn);
@@ -111,11 +113,6 @@ void Level03::update(float dt)
 	}
 
 	platNode->clear();
-	if (distanceBody != nullptr && disJointBody != nullptr) {
-		Vec2 vec1 = Vec2(distanceBody->GetPosition().x * PTM_RATIO, distanceBody->GetPosition().y * PTM_RATIO);
-		Vec2 vec2 = Vec2(disJointBody->GetPosition().x * PTM_RATIO, disJointBody->GetPosition().y * PTM_RATIO);
-		platNode->drawLine(vec1, vec2, Color4F::BLACK);
-	}
 	if (platJoint != nullptr && _FloorBody != nullptr) {
 		Vec2 vec1 = Vec2(platJoint->GetPosition().x * PTM_RATIO, platJoint->GetPosition().y * PTM_RATIO);
 		Vec2 vec2 = Vec2(_FloorBody->GetPosition().x * PTM_RATIO, _FloorBody->GetPosition().y * PTM_RATIO);
@@ -123,9 +120,11 @@ void Level03::update(float dt)
 	}
 	
 	if (gearBody[0] != nullptr) {
-		float angle = (-30) * M_PI / 180.0f;
+		float angle = (-60) * M_PI / 180.0f;
 		gearBody[0]->SetAngularVelocity(angle);
 	}
+
+	setGearOn();
 }
 
 void Level03::setObject()
@@ -152,8 +151,8 @@ void Level03::setObject()
 	setRopeJoint();
 	setWeldJoint();
 	setButton();
-	setDistanceJoint();
 	setGear();
+	setGearSensor();
 }
 
 void Level03::Replay() {
@@ -302,7 +301,7 @@ void Level03::setMouseJoint() {
 	body->CreateFixture(&fixtureDef);
 
 	bodyDef.type = b2_staticBody;
-	bodyDef.position.Set(pos.x / PTM_RATIO, (pos.y + 300) / PTM_RATIO);
+	bodyDef.position.Set((pos.x - 300) / PTM_RATIO, pos.y / PTM_RATIO);
 	bodyDef.userData = NULL;
 
 	b2Body* circleBody = _b2World->CreateBody(&bodyDef);
@@ -376,7 +375,11 @@ void Level03::setRopeJoint() {
 	Sprite* ropeSprite[8] = { nullptr };
 	Point pos[8];
 	Size size[8];
-	ropeBody[8] = { nullptr };
+	for (int i = 0; i < 8; i++)
+	{
+		ropeBody[i] = nullptr;
+		ropeBody2[i] = nullptr;
+	}
 
 	bodyDef.type = b2_dynamicBody;
 	fixtureDef.density = 0.01f;  fixtureDef.friction = 1.0f; fixtureDef.restitution = 0.0f;
@@ -457,7 +460,6 @@ void Level03::setRopeJoint() {
 	Sprite* ropeSprite2[8] = { nullptr };
 	Point pos2[8];
 	Size size2[8];
-	ropeBody2[8] = { nullptr };
 
 	bodyDef.type = b2_dynamicBody;
 	fixtureDef.density = 0.01f;  fixtureDef.friction = 1.0f; fixtureDef.restitution = 0.0f;
@@ -568,16 +570,15 @@ void Level03::setGear() {
 	for (int i = 0; i < 10; i++)
 	{
 		gearBody[i] = nullptr;
+		gearJoint[i] = nullptr;
+		RevJoint[i] = nullptr;
 	}
 	Sprite* gearSprite[10] = { nullptr };
 	Point pos[10];
 	Size size[10];
 	float scale[9];
 	float scaleX, scaleY;
-	b2Body* staticBody[10] = { nullptr };
-	b2RevoluteJoint* RevJoint[9] = { nullptr };
 	b2PrismaticJoint* PriJoint = nullptr;
-	float ratio[8];
 
 	b2BodyDef staticBodyDef;
 	staticBodyDef.type = b2_staticBody;
@@ -591,7 +592,7 @@ void Level03::setGear() {
 		std::ostringstream ostr;
 		std::string objname;
 		ostr << "gear";
-		ostr << i + 1; objname = ostr.str();
+		ostr << i; objname = ostr.str();
 
 		gearSprite[i] = dynamic_cast<Sprite*>(_csbRoot->getChildByName(objname));
 		pos[i] = gearSprite[i]->getPosition();
@@ -600,35 +601,34 @@ void Level03::setGear() {
 		if (i < 9) {
 			scale[i] = gearSprite[i]->getScale();
 			ostr.str("");
-			if (i == 6) {
-				ostr << "gear";
-				ostr << 6;
-				ostr << "_joint"; objname = ostr.str();
-			}
-			else {
-				ostr << "gear";
-				ostr << i + 1; 
-				ostr << "_joint"; objname = ostr.str();
-			}
-			auto staticSprite = dynamic_cast<Sprite*>(_csbRoot->getChildByName(objname));
-			Size circleSize = staticSprite->getContentSize();
-			float circleScale = staticSprite->getScale();
 
-			staticBodyDef.userData = staticSprite;
-			staticBodyDef.position.Set(pos[i].x / PTM_RATIO, pos[i].y / PTM_RATIO);
-			staticBody[i] = _b2World->CreateBody(&staticBodyDef);
-			staticShape.m_radius = circleSize.width * circleScale * 0.5f / PTM_RATIO;
-			staticBody[i]->CreateFixture(&fixtureDef);
+			if (i != 6){
+				ostr << "gear";
+				ostr << i; 
+				ostr << "_joint"; objname = ostr.str();
+
+				auto staticSprite = dynamic_cast<Sprite*>(_csbRoot->getChildByName(objname));
+				Point staticPos = staticSprite->getPosition();
+				Size circleSize = staticSprite->getContentSize();
+				float circleScale = staticSprite->getScale();
+
+				staticBodyDef.userData = staticSprite;
+				staticBodyDef.position.Set(staticPos.x / PTM_RATIO, staticPos.y / PTM_RATIO);
+				gearJoint[i] = _b2World->CreateBody(&staticBodyDef);
+				staticShape.m_radius = (circleSize.width - 4) * circleScale * 0.5f / PTM_RATIO;
+				gearJoint[i]->CreateFixture(&fixtureDef);
+			}
+			
 		}
 		else {
 			scaleX = gearSprite[i]->getScaleX();
 			scaleY = gearSprite[i]->getScaleY();
 
 			staticBodyDef.userData = NULL;
-			staticBodyDef.position.Set(pos[i].x / PTM_RATIO, pos[i].y / PTM_RATIO);
-			staticBody[i] = _b2World->CreateBody(&staticBodyDef);
+			staticBodyDef.position.Set(pos[i].x / PTM_RATIO, (pos[i].y + 300) / PTM_RATIO);
+			gearJoint[i] = _b2World->CreateBody(&staticBodyDef);
 			staticShape.m_radius = 5 * 0.5f / PTM_RATIO;
-			staticBody[i]->CreateFixture(&fixtureDef);
+			gearJoint[i]->CreateFixture(&fixtureDef);
 		}
 	}
 	
@@ -661,94 +661,164 @@ void Level03::setGear() {
 		gearBody[i] = _b2World->CreateBody(&gearBodyDef);
 		gearBody[i]->CreateFixture(&fixtureDef);
 	}
+	gearBody[0]->SetType(b2_kinematicBody);
 
 	b2RevoluteJointDef RJoint;
 	b2PrismaticJointDef PrJoint; // 平移關節
 
-	int count = 0;
 	for (int i = 0; i < 10; i++)
 	{
 		if (i < 9) {
-			RJoint.Initialize(staticBody[i], gearBody[i], gearBody[i]->GetWorldCenter());
-			RevJoint[i] = dynamic_cast<b2RevoluteJoint*>(_b2World->CreateJoint(&RJoint));
+			if (i != 1 && i != 2 && i != 4 && i != 6 && i != 7) {
+				RJoint.Initialize(gearJoint[i], gearBody[i], gearJoint[i]->GetWorldCenter());
+				RevJoint[i] = dynamic_cast<b2RevoluteJoint*>(_b2World->CreateJoint(&RJoint));
+			}
 			if (i < 8)
 				ratio[i] = radius[i + 1] / radius[i];
 		}
 		else {
-			PrJoint.Initialize(staticBody[i], gearBody[i], gearBody[i]->GetWorldCenter(), b2Vec2(0, 1));
+			PrJoint.Initialize(gearJoint[i], gearBody[i], gearBody[i]->GetWorldCenter(), b2Vec2(0, 1));
 			PriJoint = dynamic_cast<b2PrismaticJoint*>(_b2World->CreateJoint(&PrJoint));
 		}
 	}
+	RJoint.Initialize(gearJoint[5], gearBody[6], gearBody[6]->GetWorldCenter());
+	RevJoint[6] = dynamic_cast<b2RevoluteJoint*>(_b2World->CreateJoint(&RJoint));
 
-	for (int i = 0; i < 9; i++)
-	{
-		GJoint[i].bodyA = gearBody[i];
-		GJoint[i].bodyB = gearBody[i + 1];
-		if (i < 8) {
-			GJoint[i].joint1 = RevJoint[i];
-			GJoint[i].joint2 = RevJoint[i + 1];
-		}
-		else {
-			GJoint[i].joint1 = RevJoint[i];
-			GJoint[i].joint2 = PriJoint;
-		}
-
-		if (i == 1 || i == 5 || i == 6)
-			GJoint[i].ratio = -ratio[i];
-		else if(i == 8)
-			GJoint[i].ratio = -2;
-		else
-			GJoint[i].ratio = ratio[i];
-		//_b2World->CreateJoint(&GJoint[i]);
-	}
-	_b2World->CreateJoint(&GJoint[5]);
+	//GJoint 1568 -ratio
+	//GJoint8
+	GJoint[8].bodyA = gearBody[8];
+	GJoint[8].bodyB = gearBody[9];
+	GJoint[8].joint1 = RevJoint[8];
+	GJoint[8].joint2 = PriJoint;
+	GJoint[8].ratio = -2;
 	_b2World->CreateJoint(&GJoint[8]);
+
+	//Gear1 2 4 7
+	for (int i = 0; i < 4; i++)
+	{
+		PrJoint.Initialize(gearJoint[GearNum[i]], gearBody[GearNum[i]], gearBody[GearNum[i]]->GetWorldCenter(), b2Vec2(0, 0));
+		gearPriJoint[i] = dynamic_cast<b2PrismaticJoint*>(_b2World->CreateJoint(&PrJoint));
+		_contactListener.gearBody[i] = gearBody[GearNum[i]];
+		_isOn[i] = false;
+	}
 }
 
-void Level03::setDistanceJoint() {
-	//platform
-	auto distance = dynamic_cast<Sprite*>(_csbRoot->getChildByName("distance"));
-	Point pos = distance->getPosition();
-	Size size = distance->getContentSize();
-	float scaleX = distance->getScaleX();
-	float scaleY = distance->getScaleY();
+void Level03::setGearSensor() {
+	for (int i = 0; i < 4; i++)
+	{
+		std::ostringstream ostr;
+		std::string objname;
+		ostr << "gear";
+		ostr << GearNum[i] << "_sensor"; objname = ostr.str();
+		auto sensorSprite = dynamic_cast<Sprite*>(_csbRoot->getChildByName(objname));
+		Point pos = sensorSprite->getPosition();
+		Size size = sensorSprite->getContentSize();
+		float scale = sensorSprite->getScale();
 
-	b2BodyDef bodyDef;
-	bodyDef.type = b2_dynamicBody;
-	bodyDef.position.Set(pos.x / PTM_RATIO, pos.y / PTM_RATIO);
-	bodyDef.userData = distance;
+		b2BodyDef bodyDef;
+		bodyDef.type = b2_staticBody;
+		bodyDef.position.Set(pos.x / PTM_RATIO, pos.y / PTM_RATIO);
+		bodyDef.userData = sensorSprite;
 
-	distanceBody = _b2World->CreateBody(&bodyDef);
+		gearSensor[i] = _b2World->CreateBody(&bodyDef);
+		_contactListener.gearSensor[i] = gearSensor[i];
 
-	b2PolygonShape rectShape;
-	rectShape.SetAsBox((size.width - 4) * scaleX * 0.5f / PTM_RATIO, (size.height - 4) * scaleY * 0.5f / PTM_RATIO);
-	b2FixtureDef fixtureDef;
-	fixtureDef.shape = &rectShape;
-	fixtureDef.density = 3.0f; fixtureDef.friction = 0.25f; fixtureDef.restitution = 0.25f;
-	distanceBody->CreateFixture(&fixtureDef);
+		b2CircleShape circleShape;
+		circleShape.m_radius = (size.width - 4) * scale * 0.5f / PTM_RATIO;
+		b2FixtureDef fixtureDef;
+		fixtureDef.shape = &circleShape;
+		gearSensor[i]->CreateFixture(&fixtureDef);
+	}
+	_isTurn = false;
+}
 
-	//static
-	auto distanceJoint = dynamic_cast<Sprite*>(_csbRoot->getChildByName("distanceJoint"));
-	pos = distanceJoint->getPosition();
-	size = distanceJoint->getContentSize();
-	scaleX = distanceJoint->getScaleX();
-	scaleY = distanceJoint->getScaleY();
+void Level03::setGearOn() {
+	//齒輪碰到感應加入旋轉Joint
+	if (_contactListener._isOn[0]) {
+		if (!_isOn[0]) {
+			_isOn[0] = true;
 
-	bodyDef.type = b2_staticBody;
-	bodyDef.position.Set(pos.x / PTM_RATIO, pos.y / PTM_RATIO);
-	bodyDef.userData = distanceJoint;
+			gearBody[1]->SetLinearVelocity(b2Vec2(0, 0));
+			gearBody[1]->SetTransform(gearJoint[1]->GetPosition(), gearBody[1]->GetAngle());
+			_b2World->DestroyJoint(gearPriJoint[0]);
 
-	disJointBody = _b2World->CreateBody(&bodyDef);
+			b2RevoluteJointDef RJoint;
 
-	rectShape.SetAsBox((size.width - 4) * scaleX * 0.5f / PTM_RATIO, (size.height - 4) * scaleY * 0.5f / PTM_RATIO);
-	fixtureDef.shape = &rectShape;
-	fixtureDef.density = 3.0f; fixtureDef.friction = 0.25f; fixtureDef.restitution = 0.25f;
-	disJointBody->CreateFixture(&fixtureDef);
+			RJoint.Initialize(gearJoint[1], gearBody[1], gearBody[1]->GetWorldCenter());
+			RevJoint[1] = dynamic_cast<b2RevoluteJoint*>(_b2World->CreateJoint(&RJoint));
 
-	//DistanceJoint
-	b2DistanceJointDef disJoint;
-	disJoint.Initialize(distanceBody, disJointBody, distanceBody->GetWorldCenter(), disJointBody->GetWorldCenter());
-	_b2World->CreateJoint(&disJoint);
+			gearBody[1]->SetLinearVelocity(b2Vec2(0, 0));
+			gearBody[1]->SetAngularVelocity(0);
+		}
+	}
+	if (_contactListener._isOn[1]){
+		if (!_isOn[1]) {
+			_isOn[1] = true;
+
+			gearBody[2]->SetLinearVelocity(b2Vec2(0, 0));
+			gearBody[2]->SetTransform(gearJoint[2]->GetPosition(), gearBody[2]->GetAngle());
+			_b2World->DestroyJoint(gearPriJoint[1]);
+
+			b2RevoluteJointDef RJoint;
+
+			RJoint.Initialize(gearJoint[2], gearBody[2], gearBody[2]->GetWorldCenter());
+			RevJoint[2] = dynamic_cast<b2RevoluteJoint*>(_b2World->CreateJoint(&RJoint));
+
+			gearBody[2]->SetLinearVelocity(b2Vec2(0, 0));
+			gearBody[2]->SetAngularVelocity(0);
+		}
+	}
+	if (_contactListener._isOn[2]) {
+		if (!_isOn[2]) {
+			_isOn[2] = true;
+
+			gearBody[4]->SetLinearVelocity(b2Vec2(0, 0));
+			gearBody[4]->SetTransform(gearJoint[4]->GetPosition(), gearBody[4]->GetAngle());
+			_b2World->DestroyJoint(gearPriJoint[2]);
+
+			b2RevoluteJointDef RJoint;
+
+			RJoint.Initialize(gearJoint[4], gearBody[4], gearBody[4]->GetWorldCenter());
+			RevJoint[4] = dynamic_cast<b2RevoluteJoint*>(_b2World->CreateJoint(&RJoint));
+
+			gearBody[4]->SetLinearVelocity(b2Vec2(0, 0));
+			gearBody[4]->SetAngularVelocity(0);
+		}
+	}
+	if (_contactListener._isOn[3]) {
+		if (!_isOn[3]) {
+			_isOn[3] = true;
+
+			gearBody[7]->SetLinearVelocity(b2Vec2(0, 0));
+			gearBody[7]->SetTransform(gearJoint[7]->GetPosition(), gearBody[7]->GetAngle());
+			_b2World->DestroyJoint(gearPriJoint[3]);
+
+			b2RevoluteJointDef RJoint;
+
+			RJoint.Initialize(gearJoint[7], gearBody[7], gearBody[7]->GetWorldCenter());
+			RevJoint[7] = dynamic_cast<b2RevoluteJoint*>(_b2World->CreateJoint(&RJoint));
+
+			gearBody[7]->SetLinearVelocity(b2Vec2(0, 0));
+			gearBody[7]->SetAngularVelocity(0);
+		}
+	}
+
+	//全部齒輪碰到感應加入GearJoint
+	if (_isOn[0] && _isOn[1] && _isOn[2] && _isOn[3] && !_isTurn) {
+		_isTurn = true;
+		for (int i = 0; i < 8; i++)
+		{
+			GJoint[i].bodyA = gearBody[i];
+			GJoint[i].bodyB = gearBody[i + 1];
+			GJoint[i].joint1 = RevJoint[i];
+			GJoint[i].joint2 = RevJoint[i + 1];
+			if (i == 1 || i == 5 || i == 6)
+				GJoint[i].ratio = -ratio[i];
+			else
+				GJoint[i].ratio = ratio[i];
+			_b2World->CreateJoint(&GJoint[i]);
+		}
+	}
 }
 
 bool Level03::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//觸碰開始事件
@@ -760,7 +830,7 @@ bool Level03::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//觸碰
 	{
 		if (body->GetUserData() == NULL) continue; // 靜態物體不處理
 
-		if (body->GetUserData() == _cutSprite)
+		if (body->GetUserData() == _cutSprite || body == gearBody[1] || body == gearBody[2] || body == gearBody[4] || body == gearBody[7] || body == gearBody[8])
 		 {
 			//移動剪刀
 			Size size = _cutSprite->getContentSize();
@@ -807,8 +877,39 @@ void  Level03::onTouchMoved(cocos2d::Touch* pTouch, cocos2d::Event* pEvent) //觸
 {
 	Point touchLoc = pTouch->getLocation();
 
-	if (_bOnTouch)
+	if (_bOnTouch) {
 		_mouseJoint->SetTarget(b2Vec2(touchLoc.x / PTM_RATIO, touchLoc.y / PTM_RATIO));
+		//齒輪碰到感應取消mouseJoint
+		if (_mouseJoint->GetBodyB() == gearBody[1] && _contactListener._isOn[0]) {
+			_bOnTouch = false;
+			if (_mouseJoint != NULL) {
+				_b2World->DestroyJoint(_mouseJoint);
+				_mouseJoint = NULL;
+			}
+		}
+		else if (_mouseJoint->GetBodyB() == gearBody[2] && _contactListener._isOn[1]) {
+			_bOnTouch = false;
+			if (_mouseJoint != NULL) {
+				_b2World->DestroyJoint(_mouseJoint);
+				_mouseJoint = NULL;
+			}
+		}
+		else if (_mouseJoint->GetBodyB() == gearBody[4] && _contactListener._isOn[2]) {
+			_bOnTouch = false;
+			if (_mouseJoint != NULL) {
+				_b2World->DestroyJoint(_mouseJoint);
+				_mouseJoint = NULL;
+			}
+		}
+		else if (_mouseJoint->GetBodyB() == gearBody[7] && _contactListener._isOn[3]) {
+			_bOnTouch = false;
+			if (_mouseJoint != NULL) {
+				_b2World->DestroyJoint(_mouseJoint);
+				_mouseJoint = NULL;
+			}
+		}
+	}
+		
 	else {
 		if (_leftBtn->onTouchMoved(touchLoc))
 			_car->setState(LEFT);
@@ -880,6 +981,8 @@ void  Level03::onTouchEnded(cocos2d::Touch* pTouch, cocos2d::Event* pEvent) //觸
 
 CLevel03ContactListener::CLevel03ContactListener()
 {
+	_isOn[0] = _isOn[1] = _isOn[2] = _isOn[3] = false;
+
 	_carSprite = nullptr;
 	_isFinish = false;
 	
@@ -955,6 +1058,17 @@ void CLevel03ContactListener::BeginContact(b2Contact* contact)
 		_isClickBtn = true;
 	}
 
+	//齒輪是否碰到感應
+	for (int i = 0; i < 4; i++)
+	{
+		if (BodyA == gearBody[i] && BodyB == gearSensor[i]) {
+			_isOn[i] = true;
+		}
+		else if (BodyB == gearBody[i] && BodyA == gearSensor[i]) {
+			_isOn[i] = true;
+		}
+	}
+	
 }
 
 //碰撞結束
