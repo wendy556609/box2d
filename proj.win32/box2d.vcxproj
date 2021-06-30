@@ -154,12 +154,14 @@ xcopy "$(ProjectDir)..\Resources" "$(OutDir)\Resources\" /D /E /I /F /Y
     <ClCompile Include="..\Classes\CCar.cpp" />
     <ClCompile Include="..\Classes\common\CButton.cpp" />
     <ClCompile Include="..\Classes\common\CDraw.cpp" />
+    <ClCompile Include="..\Classes\common\CParticle.cpp" />
     <ClCompile Include="..\Classes\common\GB2ShapeCache-x.cpp" />
     <ClCompile Include="..\Classes\common\GLES-Render.cpp" />
     <ClCompile Include="..\Classes\common\Level.cpp" />
     <ClCompile Include="..\Classes\Level01.cpp" />
     <ClCompile Include="..\Classes\Level02.cpp" />
     <ClCompile Include="..\Classes\Level03.cpp" />
+    <ClCompile Include="..\Classes\Level04.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -167,12 +169,14 @@ xcopy "$(ProjectDir)..\Resources" "$(OutDir)\Resources\" /D /E /I /F /Y
     <ClInclude Include="..\Classes\CCar.h" />
     <ClInclude Include="..\Classes\common\CButton.h" />
     <ClInclude Include="..\Classes\common\CDraw.h" />
+    <ClInclude Include="..\Classes\common\CParticle.h" />
     <ClInclude Include="..\Classes\common\GB2ShapeCache-x.h" />
     <ClInclude Include="..\Classes\common\GLES-Render.h" />
     <ClInclude Include="..\Classes\common\Level.h" />
     <ClInclude Include="..\Classes\Level01.h" />
     <ClInclude Include="..\Classes\Level02.h" />
     <ClInclude Include="..\Classes\Level03.h" />
+    <ClInclude Include="..\Classes\Level04.h" />
     <ClInclude Include="main.h" />
   </ItemGroup>
   <ItemGroup>

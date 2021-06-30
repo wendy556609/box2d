@@ -26,6 +26,7 @@
 #include "Level01.h"
 #include "Level02.h"
 #include "Level03.h"
+#include "Level04.h"
 
 // #define USE_AUDIO_ENGINE 1
 // #define USE_SIMPLE_AUDIO_ENGINE 1

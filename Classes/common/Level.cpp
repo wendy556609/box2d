@@ -74,10 +74,16 @@ void Level::setInitObject() {
 	_car = new (nothrow) CCar();
 	_car->init(*_csbRoot, *_b2World);
 
-#ifdef BOX2D_DEBUG
-	auto background = dynamic_cast<Node*>(_csbRoot->getChildByName("background"));
+	auto background = dynamic_cast<Sprite*>(_csbRoot->getChildByName("background"));
 	background->setVisible(false);
+	_background = Sprite::createWithSpriteFrameName("bg64.png");
+	_background->setPosition(background->getPosition());
+	_background->setScale(background->getScale());
+	this->addChild(_background, -1);
+#ifdef BOX2D_DEBUG
+	_background->setVisible(false);
 #endif
+	
 
 #ifdef BOX2D_DEBUG
 	//DebugDrawInit

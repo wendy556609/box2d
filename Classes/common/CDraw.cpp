@@ -110,3 +110,7 @@ void CDraw::setPenColor(cocos2d::Color4F color, int num) {
 	_color = color;
 	colorNum = num;
 }
+
+cocos2d::Color4F CDraw::getPenColor() {
+	return _color;
+}

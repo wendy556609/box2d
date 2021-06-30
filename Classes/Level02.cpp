@@ -2,7 +2,7 @@
 
 Level02::~Level02()
 {
-	
+	CC_SAFE_DELETE(_ParticleSystem);
 }
 
 Scene* Level02::createScene()
@@ -61,6 +61,11 @@ void Level02::update(float dt)
 
 	_car->update(dt);
 
+	b2Vec2 worldPos = b2Vec2(_car->getCarBody()->GetWorldPoint(_car->getCarLocPos()));
+	Point pos = Point(worldPos.x * PTM_RATIO, worldPos.y * PTM_RATIO);
+	_ParticleSystem->setPosition(pos);
+	_ParticleSystem->update(dt);
+
 	if (_contactListener._isFinish) {
 		_car->setFinish(_goalPos);
 		_stopLight->setSpriteFrame("orange05.png");
@@ -85,15 +90,39 @@ void Level02::update(float dt)
 	if (_contactListener._isCut) {
 		_contactListener._isCut = false;
 		if (_contactListener.ropeNum != 99) {
-			_b2World->DestroyJoint(ropeJoint);
-			_b2World->DestroyJoint(ropeReJoint[_contactListener.ropeNum]);
+			if (ropeJoint != nullptr) {
+				_b2World->DestroyJoint(ropeJoint);
+				ropeJoint = nullptr;
+			}
+			if (ropeReJoint[_contactListener.ropeNum] != nullptr) {
+				_b2World->DestroyJoint(ropeReJoint[_contactListener.ropeNum]);
+				ropeReJoint[_contactListener.ropeNum] = nullptr;
+			}
 			_contactListener.ropeNum = 99;
 		}
 		else if (_contactListener.rope2Num != 99) {
-			_b2World->DestroyJoint(ropeJoint2);
-			_b2World->DestroyJoint(ropeReJoint2[_contactListener.rope2Num]);
+			if (ropeJoint2 != nullptr) {
+				_b2World->DestroyJoint(ropeJoint2);
+				ropeJoint2 = nullptr;
+			}
+			if (ropeReJoint2[_contactListener.rope2Num] != nullptr) {
+				_b2World->DestroyJoint(ropeReJoint2[_contactListener.rope2Num]);
+				ropeReJoint2[_contactListener.rope2Num] = nullptr;
+			}
 			_contactListener.rope2Num = 99;
 		}
+	}
+
+	platNode->clear();
+	if (_plateJoint != nullptr && _plateBody != nullptr) {
+		Vec2 vec1 = Vec2(_plateJoint->GetPosition().x * PTM_RATIO, _plateJoint->GetPosition().y * PTM_RATIO);
+		Vec2 vec2 = Vec2(_plateBody->GetPosition().x * PTM_RATIO, _plateBody->GetPosition().y * PTM_RATIO);
+		platNode->drawLine(vec1, vec2, Color4F::WHITE);
+	}
+	if (_plateBody1 != nullptr && _plateJoint1 != nullptr) {
+		Vec2 vec1 = Vec2(_plateJoint1->GetPosition().x * PTM_RATIO, _plateJoint1->GetPosition().y * PTM_RATIO);
+		Vec2 vec2 = Vec2(_plateBody1->GetPosition().x * PTM_RATIO, _plateBody1->GetPosition().y * PTM_RATIO);
+		platNode->drawLine(vec1, vec2, Color4F::WHITE);
 	}
 }
 
@@ -101,6 +130,9 @@ void Level02::setObject()
 {
 	wallCount = WallCount;
 	rectCount = rectWallCount;
+
+	_ParticleSystem = new(nothrow)CParticleSystem();
+	_ParticleSystem->init(*this);
 
 	auto btn = dynamic_cast<Sprite*>(_csbRoot->getChildByName("runnormal_red"));
 	btn->setVisible(false);
@@ -128,6 +160,9 @@ void Level02::setObject()
 	createStaticBoundary(wallCount, rectCount);
 
 	_contactListener.setCollisionTarget(*_car->getCarSprite());
+
+	platNode = DrawNode::create();
+	this->addChild(platNode, 0);
 
 	setPullJoint();
 	setMouseJoint();
@@ -176,7 +211,7 @@ void Level02::setPullJoint() {
 	bodyDef.position.Set(posA.x / PTM_RATIO, posA.y / PTM_RATIO);
 	bodyDef.userData = boxSprite;
 
-	b2Body* bodyA = _b2World->CreateBody(&bodyDef);
+	_plateBody = _b2World->CreateBody(&bodyDef);
 
 	b2PolygonShape boxShape;
 	boxShape.SetAsBox((size.width - 6) * scaleX * 0.5f / PTM_RATIO, (size.height - 6) * scaleY * 0.5f / PTM_RATIO);
@@ -185,14 +220,14 @@ void Level02::setPullJoint() {
 	fixtureDef.shape = &boxShape;
 	fixtureDef.density = 10.0f;
 	fixtureDef.friction = 0.2f;
-	bodyA->CreateFixture(&fixtureDef);
+	_plateBody->CreateFixture(&fixtureDef);
 
 	staticDef.position.Set(posA.x / PTM_RATIO, (posA.y + 500) / PTM_RATIO);
-	b2Body* staticBodyA = _b2World->CreateBody(&staticDef);
-	staticBodyA->CreateFixture(&staticFixtureDef);
+	_plateJoint = _b2World->CreateBody(&staticDef);
+	_plateJoint->CreateFixture(&staticFixtureDef);
 
 	b2PrismaticJointDef priJoint;
-	priJoint.Initialize(staticBodyA, bodyA, bodyA->GetWorldCenter(), b2Vec2(0, 1));
+	priJoint.Initialize(_plateJoint, _plateBody, _plateBody->GetWorldCenter(), b2Vec2(0, 1));
 	_b2World->CreateJoint(&priJoint);
 
 	//pulleyB
@@ -208,28 +243,28 @@ void Level02::setPullJoint() {
 	bodyDef.position.Set(posB.x / PTM_RATIO, posB.y / PTM_RATIO);
 	bodyDef.userData = boxSprite;
 
-	b2Body* bodyB = _b2World->CreateBody(&bodyDef);
+	_plateBody1 = _b2World->CreateBody(&bodyDef);
 	boxShape.SetAsBox((size.width - 6) * scaleX * 0.5f / PTM_RATIO, (size.height - 6) * scaleY * 0.5f / PTM_RATIO);
 
 	fixtureDef.shape = &boxShape;
 	fixtureDef.density = 10.0f;
 	fixtureDef.friction = 0.2f;
 	fixtureDef.filter.maskBits = 1 << 4 | 1;
-	bodyB->CreateFixture(&fixtureDef);
+	_plateBody1->CreateFixture(&fixtureDef);
 
 	staticDef.position.Set(posB.x / PTM_RATIO, (posA.y + 500) / PTM_RATIO);
-	b2Body* staticBodyB = _b2World->CreateBody(&staticDef);
-	staticBodyB->CreateFixture(&staticFixtureDef);
+	_plateJoint1 = _b2World->CreateBody(&staticDef);
+	_plateJoint1->CreateFixture(&staticFixtureDef);
 
 	//¥­²¾Joint
-	priJoint.Initialize(staticBodyB, bodyB, bodyB->GetWorldCenter(), b2Vec2(0, 1.0f));
+	priJoint.Initialize(_plateJoint1, _plateBody1, _plateBody1->GetWorldCenter(), b2Vec2(0, 1.0f));
 	_b2World->CreateJoint(&priJoint);
 
 	//Pulley Joint
 	b2Vec2 vec1 = b2Vec2(posA.x / PTM_RATIO, (posA.y + 500) / PTM_RATIO);
 	b2Vec2 vec2 = b2Vec2(posB.x / PTM_RATIO, (posB.y + 500) / PTM_RATIO);
 	b2PulleyJointDef jointDef;
-	jointDef.Initialize(bodyA, bodyB, vec1, vec2, bodyA->GetWorldCenter(), bodyB->GetWorldCenter(), 1.0f);
+	jointDef.Initialize(_plateBody, _plateBody1, vec1, vec2, _plateBody->GetWorldCenter(), _plateBody1->GetWorldCenter(), 1.0f);
 	_b2World->CreateJoint(&jointDef);
 }
 
@@ -257,6 +292,7 @@ void Level02::setMouseJoint() {
 	fixtureDef.density = 5.0f;
 	fixtureDef.restitution = 0.25f;
 	fixtureDef.friction = 0.25f;
+	fixtureDef.filter.categoryBits = 1 << 1;
 	body->CreateFixture(&fixtureDef);
 
 	bodyDef.type = b2_staticBody;
@@ -650,8 +686,11 @@ bool Level02::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//Ä²¸I
 		else if (_blueBtn->onTouchBegan(touchLoc)) {
 
 		}
-		else
+		else {
 			_draw->onTouchBegan(touchLoc);//Ã¸¹Ï
+			_ParticleSystem->setColor(_draw->getPenColor());
+			_ParticleSystem->onTouchBegan(touchLoc);
+		}
 	}
 
 	return true;
@@ -680,8 +719,11 @@ void  Level02::onTouchMoved(cocos2d::Touch* pTouch, cocos2d::Event* pEvent) //Ä²
 		else if (_blueBtn->onTouchMoved(touchLoc)) {
 
 		}
-		else
-			_draw->onTouchMoved(touchLoc);
+		else {
+			_draw->onTouchMoved(touchLoc);//Ã¸¹Ï
+			_ParticleSystem->setColor(_draw->getPenColor());
+			_ParticleSystem->onTouchMoved(touchLoc);
+		}
 	}
 }
 

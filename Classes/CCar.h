@@ -33,6 +33,7 @@ private:
 	b2Body* _moveTarget;
 
 	cocos2d::Point _carPos;
+	b2Vec2 _locPos;
 
 	float _fVelocity;
 
@@ -59,6 +60,7 @@ public:
 	cocos2d::Sprite* getCarSprite();
 	cocos2d::Point getCarPos();
 	b2Body* getCarBody();
+	b2Vec2 getCarLocPos();
 
 #ifdef BOX2D_DEBUG
 //DebugDraw

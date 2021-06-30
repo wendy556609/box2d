@@ -41,6 +41,8 @@ public:
 	void init(b2World& world,cocos2d::Node &scene);
 	void setPenColor(cocos2d::Color4F color, int num = 1);
 
+	cocos2d::Color4F getPenColor();
+
 	bool onTouchBegan(cocos2d::Point touchLoc); //觸碰開始事件
 	void onTouchMoved(cocos2d::Point touchLoc); //觸碰移動事件
 	void onTouchEnded(cocos2d::Point touchLoc); //觸碰結束事件 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/Level.h"
+#include "Level04.h"
 
 using namespace std;
 
@@ -88,6 +89,7 @@ public:
 	//gear[7]--GJoint[6] GJoint[7]
 	/*------*/
 
+	//²¢²¢°é
 	cocos2d::Point _dountPos;
 	float  _dountScale;
 	bool _dountBorn;

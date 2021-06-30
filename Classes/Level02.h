@@ -40,6 +40,12 @@ public:
 
 	CLevel02ContactListener _contactListener;
 
+	b2Body* _plateBody;
+	b2Body* _plateJoint;
+	b2Body* _plateBody1;
+	b2Body* _plateJoint1;
+
+	//°Å¤M
 	cocos2d::Sprite* _cutSprite;
 	b2MouseJoint* _mouseJoint;
 	bool _bOnTouch;

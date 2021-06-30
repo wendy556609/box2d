@@ -49,6 +49,8 @@ void CCar::setCar() {
 
 	_carBody->CreateFixture(&fixtureDef);
 
+	_locPos = b2Vec2(-100 / PTM_RATIO, -10 / PTM_RATIO);
+
 	//wheel01
 	auto wheel = dynamic_cast<Sprite*>(_csbRoot->getChildByName("wheel01"));
 	Point wheelposA = wheel->getPosition();
@@ -177,7 +179,7 @@ void CCar::setState(int state) {
 void CCar::setFinish(cocos2d::Point goalPos) {
 	if (!_isFinish) {
 		_isFinish = true;
-
+		_carBody->SetLinearVelocity(b2Vec2(0, 0));
 		b2Vec2 pos = b2Vec2(goalPos.x / PTM_RATIO, goalPos.y / PTM_RATIO);
 		_carBody->SetTransform(pos, _carBody->GetAngle());
 	}
@@ -193,4 +195,8 @@ cocos2d::Point CCar::getCarPos() {
 
 b2Body* CCar::getCarBody() {
 	return _carBody;
+}
+
+b2Vec2 CCar::getCarLocPos() {
+	return _locPos;
 }

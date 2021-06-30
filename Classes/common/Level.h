@@ -9,6 +9,7 @@
 
 #include "common/CDraw.h"
 #include "common/CButton.h"
+#include "common/CParticle.h"
 #include "CCar.h"
 
 #ifdef BOX2D_DEBUG
@@ -41,7 +42,10 @@ public:
 
 	float _endCount;
 
+	CParticleSystem* _ParticleSystem;
+
 	Node* _csbRoot;
+	Node* _background;
 
 	CCar* _car;
 
@@ -60,7 +64,6 @@ public:
 	cocos2d::Point _goalPos;
 	cocos2d::Sprite* _stopLight;
 
-	DrawNode* disNode;
 	DrawNode* platNode;
 
 	// for Box2D

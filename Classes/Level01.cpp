@@ -2,6 +2,7 @@
 
 Level01::~Level01()
 {
+	CC_SAFE_DELETE(_ParticleSystem);
 }
 
 Scene* Level01::createScene()
@@ -60,6 +61,11 @@ void Level01::update(float dt)
 
 	_car->update(dt);
 
+	b2Vec2 worldPos = b2Vec2(_car->getCarBody()->GetWorldPoint(_car->getCarLocPos()));
+	Point pos = Point(worldPos.x * PTM_RATIO, worldPos.y * PTM_RATIO);
+	_ParticleSystem->setPosition(pos);
+	_ParticleSystem->update(dt);
+
 	if (_contactListener._isFinish) {
 		_car->setFinish(_goalPos);
 		_stopLight->setSpriteFrame("orange05.png");
@@ -97,6 +103,18 @@ void Level01::update(float dt)
 			bodyData->setRotation(-1 * CC_RADIANS_TO_DEGREES(body->GetAngle()));
 		}
 	}
+
+	platNode->clear();
+	if (_plateBody != nullptr && _plateJoint != nullptr) {
+		Vec2 vec1 = Vec2(_plateJoint->GetPosition().x * PTM_RATIO, _plateJoint->GetPosition().y * PTM_RATIO);
+		Vec2 vec2 = Vec2(_plateBody->GetPosition().x * PTM_RATIO, _plateBody->GetPosition().y * PTM_RATIO);
+		platNode->drawLine(vec1, vec2, Color4F::WHITE);
+	}
+	if (_plateBody1 != nullptr && _plateJoint1 != nullptr) {
+		Vec2 vec1 = Vec2(_plateJoint1->GetPosition().x * PTM_RATIO, _plateJoint1->GetPosition().y * PTM_RATIO);
+		Vec2 vec2 = Vec2(_plateBody1->GetPosition().x * PTM_RATIO, _plateBody1->GetPosition().y * PTM_RATIO);
+		platNode->drawLine(vec1, vec2, Color4F::WHITE);
+	}
 }
 
 void Level01::setObject()
@@ -109,6 +127,12 @@ void Level01::setObject()
 	createStaticBoundary(wallCount, rectCount);
 
 	_contactListener.setCollisionTarget(*_car->getCarSprite());
+
+	platNode = DrawNode::create();
+	this->addChild(platNode, 0);
+
+	_ParticleSystem = new(nothrow)CParticleSystem();
+	_ParticleSystem->init(*this);
 
 	setPullJoint();
 	setSeesaw();
@@ -157,7 +181,7 @@ void Level01::setPullJoint() {
 	bodyDef.position.Set(posA.x / PTM_RATIO, posA.y / PTM_RATIO);
 	bodyDef.userData = boxSprite;
 
-	b2Body* bodyA = _b2World->CreateBody(&bodyDef);
+	_plateBody = _b2World->CreateBody(&bodyDef);
 
 	b2PolygonShape boxShape;
 	boxShape.SetAsBox((size.width - 6) * scaleX * 0.5f / PTM_RATIO, (size.height - 6) * scaleY * 0.5f / PTM_RATIO);
@@ -166,14 +190,14 @@ void Level01::setPullJoint() {
 	fixtureDef.shape = &boxShape;
 	fixtureDef.density = 10.0f;
 	fixtureDef.friction = 0.2f;
-	bodyA->CreateFixture(&fixtureDef);
+	_plateBody->CreateFixture(&fixtureDef);
 
 	staticDef.position.Set(posA.x / PTM_RATIO, (posA.y + 200) / PTM_RATIO);
-	b2Body* staticBodyA = _b2World->CreateBody(&staticDef);
-	staticBodyA->CreateFixture(&staticFixtureDef);
+	_plateJoint = _b2World->CreateBody(&staticDef);
+	_plateJoint->CreateFixture(&staticFixtureDef);
 
 	b2PrismaticJointDef priJoint;
-	priJoint.Initialize(staticBodyA, bodyA, bodyA->GetWorldCenter(), b2Vec2(0, 1));
+	priJoint.Initialize(_plateJoint, _plateBody, _plateBody->GetWorldCenter(), b2Vec2(0, 1));
 	_b2World->CreateJoint(&priJoint);
 
 	//pulleyB
@@ -187,25 +211,25 @@ void Level01::setPullJoint() {
 	bodyDef.position.Set(posB.x / PTM_RATIO, posB.y / PTM_RATIO);
 	bodyDef.userData = boxSprite;
 
-	b2Body* bodyB = _b2World->CreateBody(&bodyDef);
+	_plateBody1 = _b2World->CreateBody(&bodyDef);
 	boxShape.SetAsBox((size.width - 6) * scaleX * 0.5f / PTM_RATIO, (size.height - 6) * scaleY * 0.5f / PTM_RATIO);
 
 	fixtureDef.shape = &boxShape;
 	fixtureDef.density = 10.0f;
 	fixtureDef.friction = 0.2f;
-	bodyB->CreateFixture(&fixtureDef);
+	_plateBody1->CreateFixture(&fixtureDef);
 
 	staticDef.position.Set(posB.x / PTM_RATIO, (posA.y + 200) / PTM_RATIO);
-	b2Body* staticBodyB = _b2World->CreateBody(&staticDef);
-	staticBodyB->CreateFixture(&staticFixtureDef);
+	_plateJoint1 = _b2World->CreateBody(&staticDef);
+	_plateJoint1->CreateFixture(&staticFixtureDef);
 
-	priJoint.Initialize(staticBodyB, bodyB, bodyB->GetWorldCenter(), b2Vec2(0, 1.0f));
+	priJoint.Initialize(_plateJoint1, _plateBody1, _plateBody1->GetWorldCenter(), b2Vec2(0, 1.0f));
 	_b2World->CreateJoint(&priJoint);
 
 	b2Vec2 vec1 = b2Vec2(posA.x / PTM_RATIO, posA.y / PTM_RATIO);
 	b2Vec2 vec2 = b2Vec2(posB.x / PTM_RATIO, posA.y / PTM_RATIO);
 	b2PulleyJointDef jointDef;
-	jointDef.Initialize(bodyA, bodyB, vec1, vec2, bodyA->GetWorldCenter(), bodyB->GetWorldCenter(), 1.0f);
+	jointDef.Initialize(_plateBody, _plateBody1, vec1, vec2, _plateBody->GetWorldCenter(), _plateBody1->GetWorldCenter(), 1.0f);
 	_b2World->CreateJoint(&jointDef);
 }
 
@@ -434,8 +458,12 @@ bool Level01::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//Ĳ�I
 		else if (_retryBtn->onTouchBegan(touchLoc)) {
 
 		}
-		else
+		else {
 			_draw->onTouchBegan(touchLoc);
+			_ParticleSystem->setColor(_draw->getPenColor());
+			_ParticleSystem->onTouchBegan(touchLoc);
+		}
+			
 	}
 
 	return true;
@@ -455,8 +483,12 @@ void  Level01::onTouchMoved(cocos2d::Touch* pTouch, cocos2d::Event* pEvent) //Ĳ
 		else if (_retryBtn->onTouchMoved(touchLoc)) {
 
 		}
-		else
+		else {
 			_draw->onTouchMoved(touchLoc);
+			//_ParticleSystem->setColor(_draw->getPenColor());
+			_ParticleSystem->setColor(_draw->getPenColor());
+			_ParticleSystem->onTouchMoved(touchLoc);
+		}
 	}
 }
 

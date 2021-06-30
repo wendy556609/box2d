@@ -5,6 +5,7 @@ int GearNum[4] = { 1,2,4,7 };
 Level03::~Level03()
 {
 	CC_SAFE_DELETE(_dropBtn);
+	CC_SAFE_DELETE(_ParticleSystem);
 }
 
 Scene* Level03::createScene()
@@ -63,9 +64,18 @@ void Level03::update(float dt)
 
 	_car->update(dt);
 
+	b2Vec2 worldPos = b2Vec2(_car->getCarBody()->GetWorldPoint(_car->getCarLocPos()));
+	Point pos = Point(worldPos.x * PTM_RATIO, worldPos.y * PTM_RATIO);
+	_ParticleSystem->setPosition(pos);
+	_ParticleSystem->update(dt);
+
 	if (_contactListener._isFinish) {
 		_car->setFinish(_goalPos);
 		_stopLight->setSpriteFrame("orange05.png");
+		_endCount += dt;
+		if (_endCount >= ENDTIME) {
+			NextLevel();
+		}
 	}
 	// 取得 _b2World 中所有的 body 進行處理
 	// 最主要是根據目前運算的結果，更新附屬在 body 中 sprite 的位置
@@ -101,13 +111,25 @@ void Level03::update(float dt)
 	if (_contactListener._isCut) {
 		_contactListener._isCut = false;
 		if (_contactListener.ropeNum != 99) {
-			_b2World->DestroyJoint(ropeJoint);
-			_b2World->DestroyJoint(ropeReJoint[_contactListener.ropeNum]);
+			if (ropeJoint != nullptr) {
+				_b2World->DestroyJoint(ropeJoint);
+				ropeJoint = nullptr;
+			}
+			if (ropeReJoint[_contactListener.ropeNum] != nullptr) {
+				_b2World->DestroyJoint(ropeReJoint[_contactListener.ropeNum]);
+				ropeReJoint[_contactListener.ropeNum] = nullptr;
+			}
 			_contactListener.ropeNum = 99;
 		}
 		else if (_contactListener.rope2Num != 99) {
-			_b2World->DestroyJoint(ropeJoint2);
-			_b2World->DestroyJoint(ropeReJoint2[_contactListener.rope2Num]);
+			if (ropeJoint2 != nullptr) {
+				_b2World->DestroyJoint(ropeJoint2);
+				ropeJoint2 = nullptr;
+			}
+			if (ropeReJoint2[_contactListener.rope2Num] != nullptr) {
+				_b2World->DestroyJoint(ropeReJoint2[_contactListener.rope2Num]);
+				ropeReJoint2[_contactListener.rope2Num] = nullptr;
+			}
 			_contactListener.rope2Num = 99;
 		}
 	}
@@ -116,7 +138,7 @@ void Level03::update(float dt)
 	if (platJoint != nullptr && _FloorBody != nullptr) {
 		Vec2 vec1 = Vec2(platJoint->GetPosition().x * PTM_RATIO, platJoint->GetPosition().y * PTM_RATIO);
 		Vec2 vec2 = Vec2(_FloorBody->GetPosition().x * PTM_RATIO, _FloorBody->GetPosition().y * PTM_RATIO);
-		platNode->drawLine(vec1, vec2, Color4F::BLACK);
+		platNode->drawLine(vec1, vec2, Color4F::WHITE);
 	}
 	
 	if (gearBody[0] != nullptr) {
@@ -138,6 +160,9 @@ void Level03::setObject()
 
 	_contactListener.setCollisionTarget(*_car->getCarSprite());
 
+	_ParticleSystem = new(nothrow)CParticleSystem();
+	_ParticleSystem->init(*this);
+
 	auto btn = dynamic_cast<Sprite*>(_csbRoot->getChildByName("born"));
 	btn->setVisible(false);
 	_dropBtn = new(nothrow)CButton();
@@ -145,7 +170,7 @@ void Level03::setObject()
 	_dropBtn->setScale(btn->getScale());
 
 	platNode = DrawNode::create();
-	this->addChild(platNode, 2);
+	this->addChild(platNode, 0);
 
 	setMouseJoint();
 	setRopeJoint();
@@ -165,7 +190,12 @@ void Level03::Replay() {
 }
 
 void Level03::NextLevel() {
-
+	// 先將這個 SCENE 的 update  從 schedule update 中移出
+	this->unschedule(schedule_selector(Level03::update));
+	SpriteFrameCache::getInstance()->removeSpriteFramesFromFile("box2d.plist");
+	//  設定場景切換的特效
+	TransitionFade* pageTurn = TransitionFade::create(1.0F, Level04::createScene());
+	Director::getInstance()->replaceScene(pageTurn);
 }
 
 void Level03::setButton() {
@@ -576,6 +606,7 @@ void Level03::setGear() {
 	Sprite* gearSprite[10] = { nullptr };
 	Point pos[10];
 	Size size[10];
+	float angle[10];
 	float scale[9];
 	float scaleX, scaleY;
 	b2PrismaticJoint* PriJoint = nullptr;
@@ -586,7 +617,7 @@ void Level03::setGear() {
 	b2CircleShape staticShape;
 	b2FixtureDef fixtureDef;
 	fixtureDef.shape = &staticShape;
-
+	//GearStatic
 	for (int i = 0; i < 10; i++)
 	{
 		std::ostringstream ostr;
@@ -597,6 +628,7 @@ void Level03::setGear() {
 		gearSprite[i] = dynamic_cast<Sprite*>(_csbRoot->getChildByName(objname));
 		pos[i] = gearSprite[i]->getPosition();
 		size[i] = gearSprite[i]->getContentSize();
+		angle[i] = gearSprite[i]->getRotation();
 
 		if (i < 9) {
 			scale[i] = gearSprite[i]->getScale();
@@ -657,6 +689,7 @@ void Level03::setGear() {
 		}
 
 		gearBodyDef.userData = gearSprite[i];
+		gearBodyDef.angle = (-angle[i]) * M_PI / 180.0f;
 		gearBodyDef.position.Set(pos[i].x / PTM_RATIO, pos[i].y / PTM_RATIO);
 		gearBody[i] = _b2World->CreateBody(&gearBodyDef);
 		gearBody[i]->CreateFixture(&fixtureDef);
@@ -830,7 +863,7 @@ bool Level03::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//觸碰
 	{
 		if (body->GetUserData() == NULL) continue; // 靜態物體不處理
 
-		if (body->GetUserData() == _cutSprite || body == gearBody[1] || body == gearBody[2] || body == gearBody[4] || body == gearBody[7] || body == gearBody[8])
+		if (body->GetUserData() == _cutSprite || body == gearBody[1] || body == gearBody[2] || body == gearBody[4] || body == gearBody[7])
 		 {
 			//移動剪刀
 			Size size = _cutSprite->getContentSize();
@@ -866,8 +899,11 @@ bool Level03::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//觸碰
 		}
 		else if (_dropBtn->onTouchBegan(touchLoc)) {
 		}
-		else
+		else {
 			_draw->onTouchBegan(touchLoc);//繪圖
+			_ParticleSystem->setColor(_draw->getPenColor());
+			_ParticleSystem->onTouchBegan(touchLoc);
+		}
 	}
 
 	return true;
@@ -920,8 +956,11 @@ void  Level03::onTouchMoved(cocos2d::Touch* pTouch, cocos2d::Event* pEvent) //觸
 		}
 		else if (_dropBtn->onTouchMoved(touchLoc)) {
 		}
-		else
-			_draw->onTouchMoved(touchLoc);
+		else {
+			_draw->onTouchMoved(touchLoc);//繪圖
+			_ParticleSystem->setColor(_draw->getPenColor());
+			_ParticleSystem->onTouchMoved(touchLoc);
+		}
 	}
 }
 
