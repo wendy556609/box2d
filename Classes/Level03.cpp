@@ -732,6 +732,7 @@ void Level03::setGear() {
 		PrJoint.Initialize(gearJoint[GearNum[i]], gearBody[GearNum[i]], gearBody[GearNum[i]]->GetWorldCenter(), b2Vec2(0, 0));
 		gearPriJoint[i] = dynamic_cast<b2PrismaticJoint*>(_b2World->CreateJoint(&PrJoint));
 		_contactListener.gearBody[i] = gearBody[GearNum[i]];
+		_gearSprite[i] = gearSprite[GearNum[i]];
 		_isOn[i] = false;
 	}
 }
@@ -863,7 +864,7 @@ bool Level03::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//Ä²¸I
 	{
 		if (body->GetUserData() == NULL) continue; // ÀRºAª«Åé¤£³B²z
 
-		if (body->GetUserData() == _cutSprite || body == gearBody[1] || body == gearBody[2] || body == gearBody[4] || body == gearBody[7])
+		if (body->GetUserData() == _cutSprite)
 		 {
 			//²¾°Ê°Å¤M
 			Size size = _cutSprite->getContentSize();
@@ -874,6 +875,94 @@ bool Level03::onTouchBegan(cocos2d::Touch* pTouch, cocos2d::Event* pEvent)//Ä²¸I
 			float y = body->GetPosition().y * PTM_RATIO - touchLoc.y;
 			float tpdist = x * x + y * y;
 			if (tpdist < fdistX * fdistY) {
+				_bOnTouch = true;
+				b2MouseJointDef mouseJointDef;
+				mouseJointDef.bodyA = _bottomBody;
+				mouseJointDef.bodyB = body;
+				mouseJointDef.target = b2Vec2(touchLoc.x / PTM_RATIO, touchLoc.y / PTM_RATIO);
+				mouseJointDef.collideConnected = true;
+				mouseJointDef.maxForce = 1000.0f * body->GetMass();
+				_mouseJoint = dynamic_cast<b2MouseJoint*>(_b2World->CreateJoint(&mouseJointDef));
+				body->SetAwake(true);
+				break;
+			}
+		}
+		else if (body->GetUserData() == _gearSprite[0]) {
+			//²¾°Ê°Å¤M
+			Size size = _gearSprite[0]->getContentSize();
+			float scale = _gearSprite[0]->getScale();
+			float fdist = size.width * scale / 2.0f;
+
+			float x = body->GetPosition().x * PTM_RATIO - touchLoc.x;
+			float y = body->GetPosition().y * PTM_RATIO - touchLoc.y;
+			float tpdist = x * x + y * y;
+			if (tpdist < fdist * fdist) {
+				_bOnTouch = true;
+				b2MouseJointDef mouseJointDef;
+				mouseJointDef.bodyA = _bottomBody;
+				mouseJointDef.bodyB = body;
+				mouseJointDef.target = b2Vec2(touchLoc.x / PTM_RATIO, touchLoc.y / PTM_RATIO);
+				mouseJointDef.collideConnected = true;
+				mouseJointDef.maxForce = 1000.0f * body->GetMass();
+				_mouseJoint = dynamic_cast<b2MouseJoint*>(_b2World->CreateJoint(&mouseJointDef));
+				body->SetAwake(true);
+				break;
+			}
+		}
+		else if (body->GetUserData() == _gearSprite[1]) {
+			//²¾°Ê°Å¤M
+			Size size = _gearSprite[1]->getContentSize();
+			float scale = _gearSprite[1]->getScale();
+			float fdist = size.width * scale / 2.0f;
+
+			float x = body->GetPosition().x * PTM_RATIO - touchLoc.x;
+			float y = body->GetPosition().y * PTM_RATIO - touchLoc.y;
+			float tpdist = x * x + y * y;
+			if (tpdist < fdist * fdist) {
+				_bOnTouch = true;
+				b2MouseJointDef mouseJointDef;
+				mouseJointDef.bodyA = _bottomBody;
+				mouseJointDef.bodyB = body;
+				mouseJointDef.target = b2Vec2(touchLoc.x / PTM_RATIO, touchLoc.y / PTM_RATIO);
+				mouseJointDef.collideConnected = true;
+				mouseJointDef.maxForce = 1000.0f * body->GetMass();
+				_mouseJoint = dynamic_cast<b2MouseJoint*>(_b2World->CreateJoint(&mouseJointDef));
+				body->SetAwake(true);
+				break;
+			}
+		}
+		else if (body->GetUserData() == _gearSprite[2]) {
+			//²¾°Ê°Å¤M
+			Size size = _gearSprite[2]->getContentSize();
+			float scale = _gearSprite[2]->getScale();
+			float fdist = size.width * scale / 2.0f;
+
+			float x = body->GetPosition().x * PTM_RATIO - touchLoc.x;
+			float y = body->GetPosition().y * PTM_RATIO - touchLoc.y;
+			float tpdist = x * x + y * y;
+			if (tpdist < fdist * fdist) {
+				_bOnTouch = true;
+				b2MouseJointDef mouseJointDef;
+				mouseJointDef.bodyA = _bottomBody;
+				mouseJointDef.bodyB = body;
+				mouseJointDef.target = b2Vec2(touchLoc.x / PTM_RATIO, touchLoc.y / PTM_RATIO);
+				mouseJointDef.collideConnected = true;
+				mouseJointDef.maxForce = 1000.0f * body->GetMass();
+				_mouseJoint = dynamic_cast<b2MouseJoint*>(_b2World->CreateJoint(&mouseJointDef));
+				body->SetAwake(true);
+				break;
+			}
+		}
+		else if (body->GetUserData() == _gearSprite[3]) {
+			//²¾°Ê°Å¤M
+			Size size = _gearSprite[3]->getContentSize();
+			float scale = _gearSprite[3]->getScale();
+			float fdist = size.width * scale / 2.0f;
+
+			float x = body->GetPosition().x * PTM_RATIO - touchLoc.x;
+			float y = body->GetPosition().y * PTM_RATIO - touchLoc.y;
+			float tpdist = x * x + y * y;
+			if (tpdist < fdist * fdist) {
 				_bOnTouch = true;
 				b2MouseJointDef mouseJointDef;
 				mouseJointDef.bodyA = _bottomBody;

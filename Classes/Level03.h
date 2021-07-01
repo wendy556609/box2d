@@ -75,6 +75,7 @@ public:
 	//¾¦½ü
 	b2Body* gearBody[10];
 	b2Body* gearJoint[10];
+	cocos2d::Sprite* _gearSprite[4];
 	b2Body* gearSensor[4];
 	b2GearJointDef GJoint[9];
 	b2PrismaticJoint* gearPriJoint[4];

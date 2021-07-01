@@ -297,13 +297,13 @@ void Level04::setButton() {
 	fixtureDef.density = 1001.0f;
 	sensorBody->CreateFixture(&fixtureDef);
 
-	//floor
+	//door
 	auto doorSprite = dynamic_cast<Sprite*>(_csbRoot->getChildByName("door"));
 	pos = doorSprite->getPosition();
 	size = doorSprite->getContentSize();
 	scaleX = doorSprite->getScaleX();
 	scaleY = doorSprite->getScaleY();
-	_stopPosX = pos.x + 218.0f;
+	_stopPosX = pos.x + 363.0f;
 
 	bodyDef.type = b2_kinematicBody;
 	bodyDef.position.Set(pos.x / PTM_RATIO, pos.y / PTM_RATIO);
@@ -316,6 +316,7 @@ void Level04::setButton() {
 	fixtureDef.density = 10.0f;
 	fixtureDef.friction = 0.25f;
 	fixtureDef.restitution = 0;
+	fixtureDef.filter.categoryBits = 1 << 2;
 	_doorBody->CreateFixture(&fixtureDef);
 
 	PriJoint.Initialize(ClickJoint, _doorBody, _doorBody->GetWorldCenter(), b2Vec2(1.0f, 0));
